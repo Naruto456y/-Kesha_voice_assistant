@@ -29,6 +29,7 @@ from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 from youtube_search import YoutubeSearch
 from help_meneger import *
+import mouse
 
 
 def search_and_open_youtube(query):
@@ -1277,12 +1278,17 @@ def handle_command(text):
         elif 'музыка' in text:
             q = text.replace("музыка", "").strip()
             if q:
+                AppOpener.open('Yandex',True)
                 webbrowser.open(f'https://rus.hitmotop.com/search?q={q}')
                 time.sleep(1)
                 keyboard.send('Tab')
                 keyboard.send('space')
-                re('Взгляните, что я нашёл')
+                re('Послушайте, что я нашёл')
+                time.sleep(2)
+                mouse.move(252, 794)
+                mouse.click('left')
             else:
+                AppOpener.open('Yandex',True)
                 webbrowser.open('https://rus.hitmotop.com')
                 re('Открываю')
 
