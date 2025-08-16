@@ -1,6 +1,7 @@
 import time
 import help_meneger as s
 import sys
+import os 
 
 def countdown(minutes):
     seconds = minutes * 60
@@ -11,9 +12,11 @@ def countdown(minutes):
         seconds -= 1
     print("\n⏰ Время вышло!")
     try:
-        s.meneger.play_music(r"C:\Users\Yusuf\OneDrive\Документы\Scan\Пайтон\basic-alarm-ringtone.mp3")
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(current_dir, 'basic-alarm-ringtone.mp3')
+        s.manager.play_music(path)
     except:
-        s.meneger.say('Время вышло!')
+        s.manager.say('Время вышло!')
     sys.exit(0)
 
 if __name__ == "__main__":
