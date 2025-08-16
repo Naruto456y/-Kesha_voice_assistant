@@ -31,6 +31,24 @@ from youtube_search import YoutubeSearch
 from help_meneger import *
 import mouse
 
+def open_timer_file():
+    """Открывает файл Таймер.py из той же директории"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    timer_path = os.path.join(current_dir, 'Таймер.py')
+    
+    if os.path.exists(timer_path):
+        try:
+            manager.open_file(timer_path)
+            return True
+        except Exception as e:
+            print(f"Ошибка при открытии файла: {e}")
+            manager.say("Не удалось запустить Таймер")
+            return False
+    else:
+        print("Файл Таймер.py не найден в директории:")
+        print(current_dir)
+        manager.say("Не удалось запустить Таймер")
+        return False
 
 def search_and_open_youtube(query):
     """
@@ -1266,12 +1284,11 @@ def handle_command(text):
             w = w.replace("минут", "").strip()
             w = w.replace("ы", "").strip()
             if w:
-                path = meneger.search_file_path('Таймер.py')
-                meneger.open_file(path)
-                time.sleep(2)
-                keyboard.write(w)
-                keyboard.send('Enter') 
-                re('Таймер успешно запущен') 
+                if open_timer_file():
+                    time.sleep(2)
+                    keyboard.write(w)
+                    keyboard.send('Enter') 
+                    re('Таймер успешно запущен') 
             else:
                 re('Уточните на сколько поставить таймер')
 
@@ -1345,7 +1362,7 @@ def handle_command(text):
             app = text.replace("открой", "").strip()
             if app:
                 try:
-                    AppOpener.open(app,True)
+                    AppOpener.open(app,match_closest=True)
                     re(f'Открываю {app}')
                 except:
                     re(f'Не удалось открыть {app}')
@@ -1359,7 +1376,7 @@ def handle_command(text):
             app = text.replace("закрой", "").strip()
             if app:
                 try:
-                    AppOpener.close(app,True)
+                    AppOpener.close(app,match_closest=True)
                     re(f'Закрываю {app}')
                 except:
                     re(f'Не удалось закрыть {app}')
