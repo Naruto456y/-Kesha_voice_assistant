@@ -7,7 +7,7 @@ import speech_recognition as sr
 import pygame
 import time
 
-class meneger():
+class manager():
     """Это класс помагатор для меня"""
     
     def open_file(name):
@@ -78,6 +78,3 @@ class meneger():
         finally:
             if os.path.exists(temp_file):
                 os.unlink(temp_file)
-
-
-
