@@ -1250,7 +1250,7 @@ def handle_command(text):
                                 time.sleep(0.0000001)
                                 keyboard.send('Tab')
                             re(f'{m} на английском')
-                            time.sleep(2)
+                            time.sleep(4)
                             keyboard.send('alt+ctrl+V')
                             break
                         except:
@@ -1516,3 +1516,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
