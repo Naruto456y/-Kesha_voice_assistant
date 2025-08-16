@@ -16,7 +16,8 @@ class manager():
 
     def search_file_path(file_path):
         """Помагает узнавать путь к файлу"""
-        absolute_path = os.path.abspath(file_path)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        absolute_path = os.path.join(current_dir, 'Таймер.py')
         return absolute_path
 
     def play_music(file_path):
