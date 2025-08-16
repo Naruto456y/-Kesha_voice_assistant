@@ -1341,13 +1341,14 @@ def handle_command(text):
 
         elif 'включи свет' in text:
             webbrowser.open('https://alice.yandex.ru?')
-            time.sleep(2)
+            time.sleep(4)
             keyboard.write('Включи светильник')
             keyboard.send('Enter')
             re('Ок')
         
         elif 'выключи свет' in text:
             webbrowser.open('https://alice.yandex.ru?')
+            time.sleep(4)
             keyboard.write('Выключи свет')
             keyboard.send('Enter')
             re('Ок')
@@ -1516,4 +1517,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
