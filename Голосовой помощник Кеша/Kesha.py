@@ -415,7 +415,7 @@ def handle_command(text):
             start('quiz.py')
 
         elif 'квест' in text:
-            re('Запускаю игру викторина\n')
+            re('Запускаю игру квест\n')
             start('quest.py')
 
         elif 'крестики-нолики' in text:
