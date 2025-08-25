@@ -1,650 +1,586 @@
-from gtts import gTTS
-import speech_recognition as sr
-import pygame
-import os
-import time
-import random
-import keyboard
-import webbrowser
-from datetime import datetime
-import AppOpener
-import threading
-import queue
-import psutil
-import os
-import time
-import threading
-import queue
-import tempfile
-import pygame
-import speech_recognition as sr
-from gtts import gTTS
-import webbrowser
-import keyboard
-from datetime import datetime
-import psutil
-import AppOpener
-from ctypes import cast, POINTER
-from comtypes import CLSCTX_ALL
-from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-from youtube_search import YoutubeSearch
-import mouse
-from pydub import AudioSegment
-from pydub.playback import play
+import pygame as p
+import random, time
+print(__file__)
+p.init()
+screen = p.display.set_mode((1550, 800))
+p.display.set_caption('FireKill')
+icon = p.image.load(__file__.replace('FireKill.py','icon.png')).convert_alpha()
+p.display.set_icon(icon)
+# Создаём 1 спрайт 1 скина игрока
+player1_sk1 = p.image.load(__file__.replace('FireKill.py','player1_sk1.png')).convert_alpha()
+player1_sk1 = p.transform.scale(player1_sk1, (100, 180))
 
-def start(name, game = False):
-    """Открывает файл или паппку в этой папке"""
-    path = __file__.replace('Kesha.py', name)
-    os.startfile(path)
+# Создаём 2 спрайт 1 скина игрока
+player2_sk1 = p.image.load(__file__.replace('FireKill.py','player2_sk1.png')).convert_alpha()
+player2_sk1 = p.transform.scale(player2_sk1, (130, 180))
 
-def search_and_open_youtube(query):
-    """
-    Ищет видео на YouTube по запросу и открывает первое найденное видео в браузере.
+# Создаём 1 спрайт 2 скина игрока
+player1_sk2 = p.image.load(__file__.replace('FireKill.py','player1_sk2.png')).convert_alpha()
+player1_sk2 = p.transform.scale(player1_sk2, (110, 200))
+
+# Создаём 2 спрайт 2 скина игрока
+player2_sk2 = p.image.load(__file__.replace('FireKill.py','player2_sk2.png')).convert_alpha()
+player2_sk2 = p.transform.scale(player2_sk2, (110, 200))
+
+# Создаём врага
+enemy_img = p.image.load(__file__.replace('FireKill.py','enemy.png')).convert_alpha()
+enemy_img = p.transform.scale(enemy_img, (200, 220))
+
+# Создаём сердца для шкалы здоровья
+h1 = p.image.load(__file__.replace('FireKill.py','heart_1.png')).convert_alpha()
+h1 = p.transform.scale(h1, (150, 100))
+
+h2 = p.image.load(__file__.replace('FireKill.py','heart_2.png')).convert_alpha()
+h2 = p.transform.scale(h2, (150, 100))
+
+h3 = p.image.load(__file__.replace('FireKill.py','heart_3.png')).convert_alpha()
+h3 = p.transform.scale(h3, (150, 100))
+
+# Создаём монету
+coin_img = p.image.load(__file__.replace('FireKill.py','coin.png')).convert_alpha()
+coin_img = p.transform.scale(coin_img, (100, 60))
+
+# Создаём магазин
+shop_icon = p.image.load(__file__.replace('FireKill.py','shop.png')).convert_alpha()
+shop_icon = p.transform.scale(shop_icon, (150, 100))
+
+# Создаём фон магазина
+shop_bg = p.image.load(__file__.replace('FireKill.py','back_ground.jpg')).convert_alpha()
+shop_bg = p.transform.scale(shop_bg, (1550, 800))
+
+# Создаём фон
+bg = p.image.load(__file__.replace('FireKill.py','back_ground.jpg')).convert_alpha()
+bg = p.transform.scale(bg, (1550, 800))
+
+# Создаём экран окончания 
+go = p.image.load(__file__.replace('FireKill.py','game_over.png')).convert_alpha()
+go = p.transform.scale(go, (1550, 800))
+
+# Создаём fireball для 1 скина
+fireball1 = p.image.load(__file__.replace('FireKill.py','fireball1.png')).convert_alpha()
+fireball1 = p.transform.scale(fireball1, (100, 100))
+
+# Создаём fireball для 2 скина
+fireball2 = p.image.load(__file__.replace('FireKill.py','fireball2.png')).convert_alpha()
+fireball2 = p.transform.scale(fireball2, (100, 100))
+
+# Шрифты
+font = p.font.SysFont('Arial', 30)
+big_font = p.font.SysFont('Arial', 60)
+
+clock = p.time.Clock()
+
+# Границы для монет
+COIN_MIN_X = 0
+COIN_MAX_X = 1000
+COIN_MIN_Y = 10
+COIN_MAX_Y = 550
+
+# Класс для файрболов
+class Fireball:
+    def __init__(self, x, y, skin_set):
+        self.x = x
+        self.y = y
+        self.speed = 15
+        self.active = True
+        self.width = 100
+        self.height = 100
+        self.skin_set = skin_set  # Добавляем информацию о скина
     
-    :param query: Строка поискового запроса.
-    :return: None (открывает ссылку в браузере).
-    """
-    # Получаем результаты поиска
-    results = YoutubeSearch(query, max_results=1).to_dict()  # Берём только первый результат
+    def update(self):
+        self.x += self.speed
+        if self.x > 1550:
+            self.active = False
     
-    if not results:
-        print("Ничего не найдено.")
-        return
-    
-    # Формируем полную ссылку на видео
-    video_url = f"https://youtube.com{results[0]['url_suffix']}"
-    
-    # Открываем ссылку в браузере
-    webbrowser.open(video_url)
-    print(f"Открываю видео: {results[0]['title']}")
-
-jokes = [
-# Программистские
-"Почему программисты путают Хэллоуин и Рождество? Потому что Oct 31 == Dec 25!",
-"Сколько программистов нужно, чтобы вкрутить лампочку? Ни одного, это hardware проблема!",
-"Программист звонит в техподдержку: 'У меня проблема...' 'Решено', - отвечают ему.",
-
-# Про студентов
-"Студент на экзамене: 'Я знал ответ, но забыл'. Преподаватель: 'Жаль, что вы не забыли прийти'",
-"Лекция в университете. Профессор: 'Это должно быть очевидно...' Студент встаёт и выходит: 'Тогда я вам не нужен'",
-"Студент спрашивает у профессора: 'А можно я сдам работу завтра?' Профессор: 'Конечно, но я не обещаю, что буду завтра жив'",
-
-# Про животных
-"Почему курица перешла дорогу? Чтобы доказать опоссуму, что это можно сделать!",
-"Два хомяка в колесе. Один говорит: 'Ну что, бежим?' Второй: 'Нет, я в прошлый раз так набегался, что до сих пор кручусь'",
-"Кот написал на ковёр. Хозяин тычет его носом: 'Будешь ещё писать?' Кот думает: 'Ну теперь-то точно буду...'",
-
-# Про работу
-"Начальник сотруднику: 'Вы уволены!' 'Но я же только вчера устроился!' 'Да, и уже опоздали сегодня!'",
-"Работник спрашивает начальника: 'Можно мне зарплату?' 'Можно, но только не всю сразу'",
-"Объявление: 'Требуется человек, который ничего не делает. Зарплата — как за полный рабочий день'",
-
-# Про семью
-"Муж жене: 'Дорогая, я починил розетку!' 'Как ты это сделал без инструментов?' 'Я просто вынул вилку из другой розетки'",
-"Ребёнок спрашивает отца: 'Пап, а почему у тебя так мало волос?' 'Потому что я много думал, сынок' 'А почему тогда у дедушки совсем нет волос?'",
-"Жена мужу: 'Я похожа на цаплю?' 'Нет' 'А я стою на одной ноге уже час, пока ты рыбачишь!'",
-
-# Детские
-"Почему карандаш плохо писал? Потому что он был тупой!",
-"Мама говорит сыну: 'Если будешь есть морковку, будешь видеть в темноте!' 'Мама, я и так вижу в темноте!' 'Как?' 'Я же не ем морковку!'",
-"Учитель: 'Кто может назвать пять диких животных?' Вовочка: 'Тигр, три тигра и ещё один тигр!'",
-
-# Медицинские
-"Врач пациенту: 'У вас редкое заболевание' 'Доктор, это хорошо?' 'Нет, это плохо. Просто я редко ошибаюсь'",
-"Пациент: 'Доктор, я не могу вспомнить, что мне нужно делать' Доктор: 'Забыли?' 'Да!' 'Тогда приходите завтра'",
-"Доктор: 'Вам нужно бросить курить, пить и есть жирное' Пациент: 'И сколько я тогда проживу?' 'Не знаю, но время будет тянуться очень медленно'",
-
-# Про технику
-"Почему компьютер плохо спал? Потому что у него была Windows!",
-"Телефон говорит другому телефону: 'Привет!' 'Извини, я на проводе'",
-"Жена мужу: 'Почему ты купил такой дорогой телефон?' 'Он умный!' 'Тогда пусть сам зарабатывает!'",
-
-# Исторические
-"Иван Грозный спрашивает у придворного: 'Почему ты дрожишь?' 'Ваше Величество, я не дрожу, я танцую!'",
-"На раскопках нашли древний компьютер. Археологи думают — то ли калькулятор, то ли каменный ноутбук...",
-"Первобытный человек изобрёл колесо. Другой первобытный человек: 'А теперь приделай к нему ещё три и получится машина!'",
-
-# Про деньги
-"Банкир спрашивает клиента: 'Вы хотите взять кредит?' 'Нет, я хочу деньги!'",
-"Муж жене: 'Дорогая, я нашёл способ экономить!' 'Какой?' 'Мы будем меньше тратить!'",
-"Объявление: 'Даю деньги в долг под 0%. Первому, кто поверит'",
-
-# Шуточные диалоги
-"- Ты где был? - Да так, нигде... - А где это?",
-"- Почему ты не отвечаешь на мои сообщения? - Я их не получал! - Как не получал? Я же вижу, что ты прочитал! - Ну вот, теперь получил...",
-"- Ты помнишь, как мы познакомились? - Нет - И я не помню. Кажется, нас познакомили...",
-
-# Про спорт
-"Футболист после матча: 'Я бежал так быстро, что даже забыл мяч!'",
-"Тренер команде: 'Вы играете как стадо баранов!' Капитан: 'Тренер, это оскорбление!' 'Для баранов — да!'",
-"Боксёр перед боем: 'Я не боюсь соперника!' Тренер: 'Тогда зачем ты надел мои шорты?'",
-
-# Про науку
-"Учёные изобрели новую элементарную частицу — лень. Но изучать её пока не хотят...",
-"Физик говорит другу: 'Я изобрёл машину времени!' 'И что?' 'Да ничего, просто похвастаться'",
-"Математик тонет в реке и кричит: 'Помогите! Я не умею плавать!' Прохожий: 'Так встаньте на дно!' 'А оно есть?'",
-
-# Про путешествия
-"Турист спрашивает у местного: 'Как пройти к морю?' 'Миллион лет прямо, потом направо'",
-"Почему путешественник взял с собой лестницу? Чтобы подняться на Эверест ступенька за ступенькой!",
-"Таможенник спрашивает туриста: 'У вас есть что-то ценное?' 'Да, моя жена!' 'Хм... Можете проходить'",
-
-# Про еду
-"Почему хлеб грустный? Потому что его все режут!",
-"Шеф-повар ученику: 'Ты пересолил суп!' 'Но я ещё не солил!' 'Вот именно!'",
-"Муж жене: 'Что на ужин?' 'Сюрприз!' 'Опять яичница...'",
-
-# Про армию
-"Солдат докладывает командиру: 'Товарищ генерал, противник сдаётся!' 'Отлично! А кто это такой противник?'",
-"Рекрута спрашивают: 'Почему вы хотите служить в армии?' 'Чтобы научиться отдавать честь!' 'Кому?' 'Всем подряд!'",
-"Сержант новобранцу: 'Вы что, совсем дурак?' 'Нет, я только по средам!'",
-
-# Про школу
-"Учитель: 'Кто может назвать самое быстрое существо?' Вовочка: 'Мысль! Она за секунду вокруг света!' 'А пример?' 'Я только что подумал об каникулах!'",
-"Директор школы учителю: 'Почему у вас в классе так шумно?' 'Это не шум, это коллективное обсуждение!'",
-"Ученик спрашивает учителя: 'А правда, что раньше люди жили до 300 лет?' 'Нет, это миф' 'Тогда зачем вы мне поставили 300 лет домашней работы?'",
-
-# Про транспорт
-"Почему поезд опоздал? Потому что его рельсы были в другом часовом поясе!",
-"Пассажир водителю автобуса: 'Вы проехали мою остановку!' 'Не волнуйтесь, следующая через 500 метров!' 'Но я же пешком иду!'",
-"ГАИшник останавливает машину: 'Вы превысили скорость!' 'Но я только начал движение!' 'Вот именно!'",
-
-# Про искусство
-"Художник показывает картину: 'Это абстракционизм!' 'А где рамка?' 'Это и есть абстракция!'",
-"Музыкант жалуется: 'Моя скрипка не играет!' 'Может, её надо включить?'",
-"Актёр на прослушивании: 'Я могу сыграть любую роль!' 'Тогда сыграйте зрителя!'"
-]  
-
-# Инициализация аудио системы
-pygame.mixer.init()
-TEMP_DIR = tempfile.gettempdir()
-command_queue = queue.Queue()
-
-# Настройки голосового помощника
-class Config:
-    WAKE_WORDS = ['кеша', 'кеш', 'гоша', 'кэш','валера','чебурек']
-    SENSITIVITY = 0.5
-    ENERGY_THRESHOLD = 1000
-    PAUSE_THRESHOLD = 2
-    DYNAMIC_ENERGY = True
-    TIMEOUT = 1.5
-    PHRASE_LIMIT = 3
-
-# Инициализация управления громкостью
-try:
-    devices = AudioUtilities.GetSpeakers()
-    interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-    volume_control = cast(interface, POINTER(IAudioEndpointVolume))
-    VOLUME_CONTROL_ENABLED = True
-except:
-    VOLUME_CONTROL_ENABLED = False
-    print("Не удалось инициализировать управление громкостью")
-
-class AudioManager:
-    """Управление воспроизведением аудио"""
-    def __init__(self):
-        self._init_mixer()
-        self.playback_thread = None
-
-    def _init_mixer(self):
-        try:
-            pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
-        except:
-            print("Ошибка инициализации аудио микшера")
-
-    def say(self, text):
-        """Асинхронное воспроизведение текста"""
-        if not text.strip():
-            return
-
-        try:
-            filename = os.path.join(TEMP_DIR, f"voice_{int(time.time()*1000)}.mp3")
-            tts = gTTS(text=text, lang='ru', slow=False)
-            tts.save(filename)
-
-            if self.playback_thread and self.playback_thread.is_alive():
-                pygame.mixer.music.stop()
-                self.playback_thread.join(timeout=0.1)
-
-            try:
-                pygame.mixer.music.load(filename)
-                pygame.mixer.music.play()
-            except:
-                self._init_mixer()
-                pygame.mixer.music.load(filename)
-                pygame.mixer.music.play()
-
-            self.playback_thread = threading.Thread(
-                target=self._cleanup_audio,
-                args=(filename,),
-                daemon=True
-            )
-            self.playback_thread.start()
-
-        except Exception as e:
-            print(f"Ошибка воспроизведения: {e}")
-
-    def _cleanup_audio(self, filename):
-        """Очистка аудиофайлов после воспроизведения"""
-        while pygame.mixer.music.get_busy():
-            time.sleep(0.05)
-        try:
-            if os.path.exists(filename):
-                os.remove(filename)
-        except:
-            pass
-
-audio_manager = AudioManager()
-
-class VoiceRecognizer:
-    """Распознавание голосовых команд"""
-    def __init__(self):
-        self.recognizer = sr.Recognizer()
-        self.recognizer.energy_threshold = Config.ENERGY_THRESHOLD
-        self.recognizer.pause_threshold = Config.PAUSE_THRESHOLD
-        self.recognizer.dynamic_energy_threshold = Config.DYNAMIC_ENERGY
-
-    def listen(self, timeout=1.5):
-        """Слушаем микрофон с таймаутом"""
-        with sr.Microphone() as source:
-            try:
-                audio = self.recognizer.listen(
-                    source, 
-                    timeout=timeout,
-                    phrase_time_limit=Config.PHRASE_LIMIT
-                )
-                return self.recognizer.recognize_google(audio, language='ru-RU').lower()
-            except (sr.WaitTimeoutError, sr.UnknownValueError):
-                return ""
-            except Exception as e:
-                print(f"Ошибка распознавания: {e}")
-                return ""
-
-def re(text):
-    """Быстрый вывод и озвучивание текста"""
-    print(text)
-    audio_manager.say(text)
-
-def listen_for_wake_word():
-    """Прослушивание ключевого слова для активации"""
-    recognizer = VoiceRecognizer()
-    re("Готов к работе, жду ключевое слово...")
-    print("кеша, кеш, гоша, кэш, валера, чебурек")
-    while True:
-        try:
-            text = recognizer.listen(timeout=Config.TIMEOUT)
-            if any(word in text for word in Config.WAKE_WORDS):
-                command_queue.put("wake_word_detected")
-        except Exception as e:
-            print(f"Ошибка в listen_for_wake_word: {e}")
-            time.sleep(0.1)
-
-def recognize_command():
-    """Распознавание команды после активации"""
-    recognizer = VoiceRecognizer()
-    re("Слушаю...")
-    return recognizer.listen()
-
-def process_commands():
-    """Обработка команд из очереди"""
-    while True:
-        command = command_queue.get()
-        if command == "wake_word_detected":
-            command_text = recognize_command()
-            if command_text:
-                threading.Thread(
-                    target=handle_command,
-                    args=(command_text,),
-                    daemon=True
-                ).start()
-            else:
-                re("Я вас не расслышал, повторите пожалуйста")
-
-def set_system_volume(level):
-    """Установка громкости системы"""
-    if not VOLUME_CONTROL_ENABLED:
-        return False
-    try:
-        volume_control.SetMasterVolumeLevelScalar(level, None)
-        return True
-    except:
-        return False
-
-def get_system_volume():
-    """Получение текущей громкости"""
-    if not VOLUME_CONTROL_ENABLED:
-        return 0.5
-    try:
-        return volume_control.GetMasterVolumeLevelScalar()
-    except:
-        return 0.5
-
-def change_volume(direction):
-    """Изменение громкости"""
-    current = get_system_volume()
-    if direction == 'up':
-        new_vol = min(1.0, current + 0.1)
-    elif direction == 'down':
-        new_vol = max(0.0, current - 0.1)
-    else:
-        return current
-
-    if set_system_volume(new_vol):
-        return new_vol
-    return current
-
-def handle_command(text):
-    """Обработка конкретной команды"""
-    if not text:
-        return
-
-    print(f"Распознанная команда: {text}")
-    text = text.lower().strip()
-    try:
-        if any(word in text for word in ['пока', 'выход', 'стоп']):
-            re('До свидания!')
-            os._exit(0)
-
-        elif 'найди в ютуби' in text:
-            quertty = text.replace("найди в ютуби", "").strip()
-            if quertty:
-                search_and_open_youtube(quertty)
-                re('Вот что я нашёл')
-            else:
-                re('Что именно вам найти?')
-
-        elif 'открой roblox' in text:
-            os.startfile(r'C:\Users\Yusuf\AppData\Local\Roblox\Versions\version-fe20d41d8fec4770\RobloxPlayerBeta')
-            re('Открываю')
-
-        elif 'открой minecraft' in text:
-            os.startfile(r'C:\Users\Yusuf\OneDrive\Рабочий стол\MINECRAFT')
-            re('Открываю')
-            
-        elif 'переведи на' in text:
-                if 'английский' in text:
-                    m = text.replace("переведи на английский", "").strip()
-                    while True:
-                        try:
-                            webbrowser.open(f'https://translate.yandex.ru/?from=tableau_yabro&source_lang=ru&target_lang=en&text={m}')
-                            time.sleep(2)
-                            for i in range(13):
-                                time.sleep(0.0000001)
-                                keyboard.send('Tab')
-                            re(f'{m} на английском')
-                            time.sleep(2)
-                            keyboard.send('alt+ctrl+V')
-                            break
-                        except:
-                            keyboard.send('alt+Shift')
-                            keyboard.send('alt+ctrl+V')
-                            break
-
-                elif 'русский' in text:
-                    m = text.replace("переведи на русский", "").strip()
-                    while True:
-                        try:
-                            webbrowser.open(f'https://translate.yandex.ru/?from=tableau_yabro&source_lang=en&target_lang=ru&text={m}')
-                            time.sleep(2)
-                            for i in range(13):
-                                time.sleep(0.0000001)
-                                keyboard.send('Tab')
-                            re(f'{m} на русском')
-                            time.sleep(2)
-                            keyboard.send('alt+ctrl+V')
-                            break
-                        except:
-                            keyboard.send('alt+Shift')
-                            keyboard.send('alt+ctrl+V')
-                            break
-
-        elif 'youtube' in text:
-            webbrowser.open('https://www.youtube.com/')
-            re('Открываю YouTube')
-        
-        elif 'камень ножницы бумага' in text:
-            re('Запускаю игру камень ножницы бумага\n')
-            start('stone_knots_paper.py')
-
-        elif 'виселиц' in text:
-            re('Запускаю игру виселица\n')
-            start('hangman.py')
-
-        elif 'викторин' in text:
-            re('Запускаю игру викторина\n')
-            start('quiz.py')
-
-        elif 'квест' in text:
-            re('Запускаю игру квест\n')
-            start('quest.py')
-
-        elif 'крестики-нолики' in text:
-            re('Запускаю игру крестики нолики\n')
-            start('tictactoe.py')
-
-        elif 'угадай число' in text:
-            re('Запускаю игру угадай число\n')
-            start('rand_game.py')
-
-        elif any(word in text for word in ['дипси', 'deep', 'deepseek']):
-            re('Открываю нейросеть дипсик')
-            webbrowser.open('https://chat.deepseek.com/a/chat/s/5e62a9fe-9717-452d-9a82-89c2ca2dd30b')
-
-        elif 'переводчик' in text:
-            re('Открываю переводчик')
-            webbrowser.open('https://translate.yandex.ru/?111=')
-
-        elif 'игры' in text:
-            re('Открываю яндекс игры')
-            webbrowser.open('https://yandex.ru/games/')
-
-        elif 'как дела' in text:
-           re('Всё отлично!Будет ещё лучше если я смогу вам помочь')
-
-        elif 'молодец' in text:
-            re('Спасибо!Всегда к вашим услугам')
-
-        elif 'привет' in text:
-            re('Привет! Чем могу помочь?')
-
-        elif 'найди' in text:
-            querty = text.replace("найди", "").strip()
-            if querty:
-                webbrowser.open_new_tab(f'https://yandex.ru/search/?text={querty}')
-                re(f'Ищу {querty}')
-            else:
-                re('Что именно вам найти?')
-
-        elif 'погода' in text:
-            webbrowser.open_new_tab('https://yandex.ru/pogoda/')
-            re('Открываю прогноз погоды')
-
-        elif 'fire kill' in text:
-            start(r'game\FireKill.py')
-            re('Запускаю')
-        elif 'открой настройки' in text:
-            keyboard.send('Win + I')
-            re('Есть')
-
-        # Для тех у кого умный дом
-
-        elif 'включи свет' in text:
-            webbrowser.open('https://alice.yandex.ru?')
-            time.sleep(2)
-            keyboard.write('Включи светильник')
-            keyboard.send('Enter')
-            re('Ок')
-        
-        elif 'выключи свет' in text:
-            webbrowser.open('https://alice.yandex.ru?')
-            time.sleep(2)
-            keyboard.write('Выключи свет')
-            keyboard.send('Enter')
-            re('Ок')
-
-        elif 'поставь таймер на' in text:
-            w = text.replace("поставь таймер на", "").strip()
-            w = w.replace("минуту", "").strip()
-            w = w.replace("минут", "").strip()
-            w = w.replace("ы", "").strip()
-            if w:
-                start('timer.py')
-                time.sleep(3)
-                keyboard.write(w)
-                keyboard.send('Enter') 
-                re('Таймер успешно запущен') 
-            else:
-                re('Уточните на сколько поставить таймер')
-
-        elif 'музыка' in text:
-            q = text.replace("музыка", "").strip()
-            if q:
-                AppOpener.open('Yandex',True)
-                webbrowser.open(f'https://rus.hitmotop.com/search?q={q}')
-                time.sleep(1)
-                keyboard.send('Tab')
-                keyboard.send('space')
-                re('Послушайте, что я нашёл')
-                time.sleep(2)
-                mouse.move(252, 794)
-                mouse.click('left')
-            else:
-                AppOpener.open('Yandex',True)
-                webbrowser.open('https://rus.hitmotop.com')
-                re('Открываю')
-
-        elif 'открой проводник' in text:
-            keyboard.send('Win + E')
-            re('Есть')
-
-        elif 'дальше' in text:
-            keyboard.send('shift + N')
-            re('Есть')
-
-        elif 'пробел' in text:
-            keyboard.send('space')
-            re('Есть')
-
-        elif 'полный экран' in text:
-            keyboard.send('F')
-            re('Есть')
-
-        elif 'время' in text:
-            current_time = datetime.now().strftime("%H:%M")
-            re(f'Сейчас {current_time}')
-
-        elif 'времени' in text:
-            current_time = datetime.now().strftime("%H:%M")
-            re(f'Сейчас {current_time}')    
-
-        elif 'состояние' in text or 'батарея' in text:
-            battery = psutil.sensors_battery()
-            if battery.power_plugged:
-                status = "заряжается"
-            else:
-                status = "работает от батареи"
-            re(f'Батарея {status}, уровень заряда {battery.percent}%')
-
-        elif any(word in text for word in ['громче', 'увеличь громкость']):
-            new_vol = change_volume('up')
-            re(f'Громкость увеличена до {int(new_vol * 100)}%')
-
-        elif any(word in text for word in ['тише', 'уменьши громкость']):
-            new_vol = change_volume('down')
-            re(f'Громкость уменьшена до {int(new_vol * 100)}%')
-
-        elif 'громкость' in text:
-            try:
-                vol_level = int(''.join(filter(str.isdigit, text)))
-                vol_level = max(0, min(100, vol_level))
-                if set_system_volume(vol_level / 100):
-                    re(f'Установлена громкость {vol_level}%')
-            except:
-                re('Скажите, например, "поставь громкость 50"')
-
-        elif 'открой' in text:
-            app = text.replace("открой", "").strip()
-            if app:
-                try:
-                    AppOpener.open(app,match_closest=True)
-                    re(f'Открываю {app}')
-                except:
-                    re(f'Не удалось открыть {app}')
-            else:
-                re('Какое приложение открыть?')
-
-        elif 'анекдот' in text:
-            re(random.choice(jokes))
-
-        elif 'закрой' in text:
-            app = text.replace("закрой", "").strip()
-            if app:
-                try:
-                    AppOpener.close(app,match_closest=True)
-                    re(f'Закрываю {app}')
-                except:
-                    re(f'Не удалось закрыть {app}')
-            else:
-                re('Какое приложение закрыть?')
-
-        elif 'выключи компьютер' in text:
-            re('Выключаю компьютер через 10 секунд')
-            os.system("shutdown /s /t 10")
-
+    def draw(self):
+        # Рисуем соответствующий файрбол в зависимости от скина
+        if self.skin_set == 1:
+            screen.blit(fireball1, (self.x, self.y))
         else:
-            re('Не понял команду. Попробуйте еще раз.')
+            screen.blit(fireball2, (self.x, self.y))
+    
+    def get_rect(self):
+        return p.Rect(self.x, self.y, self.width, self.height)
 
-    except Exception as e:
-        re('Произошла ошибка при обработке команды')
-        print(f"Ошибка: {e}")
+# Класс для монет
+class Coin:
+    def __init__(self, x, y):
+        self.x = max(COIN_MIN_X, min(x, COIN_MAX_X))
+        self.y = max(COIN_MIN_Y, min(y, COIN_MAX_Y))
+        self.speed = 3
+        self.active = True
+        self.width = 50
+        self.height = 50
+        self.value = 5
+    
+    def update(self):
+        self.y += self.speed
+        if self.y > 800:
+            self.active = False
+    
+    def draw(self):
+        screen.blit(coin_img, (self.x, self.y))
+    
+    def get_rect(self):
+        return p.Rect(self.x, self.y, self.width, self.height)
 
-def main():
-    """Основная функция"""
-    print("\033[1;32m" + ' 🚀 Голосовой помощник активирован 🚀' + "\033[0m")
-    print("Для выхода скажите кеша пока/стоп/выход")
-    print("Доступные команды:")
+# Класс для врагов
+class Enemy:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.speed = 5
+        self.active = True
+        self.width = 200
+        self.height = 220
+        self.has_dropped_coin = False
+    
+    def update(self):
+        self.x -= self.speed
+        if self.x < -200:
+            self.active = False
+    
+    def draw(self):
+        screen.blit(enemy_img, (self.x, self.y))
+    
+    def get_rect(self):
+        return p.Rect(self.x, self.y, self.width, self.height)
+    
+    def hit(self):
+        self.active = False
+        return True
+    
+    def drop_coin(self, coins):
+        if not self.has_dropped_coin:
+            if (COIN_MIN_X <= self.x + 75 <= COIN_MAX_X and 
+                COIN_MIN_Y <= self.y + 100 <= COIN_MAX_Y):
+                coins.append(Coin(self.x + 75, self.y + 100))
+            else:
+                coin_x = max(COIN_MIN_X, min(self.x + 75, COIN_MAX_X))
+                coin_y = max(COIN_MIN_Y, min(self.y + 100, COIN_MAX_Y))
+                coins.append(Coin(coin_x, coin_y))
+            self.has_dropped_coin = True
 
-    print("- Привет/Молодец/Как дела")
-    print("- Мызыка/Музыка [название]")
-    print("- Поставь таймер на [минут]")
-    print("- Включи свет/Выключи свет (Для тех у кого есть умный дом алисой)")
-    print("- Переведи на английский [слово]")
-    print("- Дальше/Пауза")
-    print("- Найди в ютубе [запрос]")
-    print("- Найди [запрос]")
-    print("- Открой/Закрой [приложение] (иногда не работает)-")
-    print("- Погода")
-    print("- Переводчик")
-    print("- Время")
-    print("- Состояние батареи")
-    print("- Громче/Тише")
-    print("- Громкость [громкость от 1 до 100]")
-    print("- Выключи компьютер")
+# Класс для кнопок магазина
+class Button:
+    def __init__(self, x, y, width, height, text, price, action):
+        self.rect = p.Rect(x, y, width, height)
+        self.text = text
+        self.price = price
+        self.action = action
+        self.color = (100, 100, 200)
+        self.hover_color = (150, 150, 250)
+        self.is_hovered = False
+    
+    def draw(self):
+        color = self.hover_color if self.is_hovered else self.color
+        p.draw.rect(screen, color, self.rect)
+        p.draw.rect(screen, (0, 0, 0), self.rect, 2)
+        if self.price:
+            text_surface = font.render(f"{self.text} - {self.price} монет", True, (255, 255, 255))
+        else:
+            text_surface = font.render(f"{self.text}", True, (255, 255, 255))
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        screen.blit(text_surface, text_rect)
+    
+    def check_hover(self, mouse_pos):
+        self.is_hovered = self.rect.collidepoint(mouse_pos)
+        return self.is_hovered
+    
+    def check_click(self, mouse_pos, mouse_click):
+        return self.rect.collidepoint(mouse_pos) and mouse_click
 
-    print("Доступные игры:")
+running = True
+game_over = False
+shop_open = False
+x = 0
+y = 200
+fireballs = []
+enemies = []
+coins = []
+speed = 15
+fire_cooldown_max = 60
+fire_cooldown = 0
+can_fire = True
+current_skin = player1_sk1
+shooting_animation_time = 0
+score = 0
+coins_collected = 0
+enemy_spawn_timer = 0
+lives = 3
+invulnerability_timer = 0
+extra_lives = 0
+current_skin_set = 1  # 1 = первый скин, 2 = второй скин
+skin2_unlocked = False  # Второй скин изначально заблокирован
+begin_time = time.time()
+final_time = 0  # Добавляем переменную для хранения времени окончания игры
+coin_multiplier = 1  # Множитель монет (1 = обычное количество, 2 = двойное)
+coin_multiplier_unlocked = False  # Куплен ли множитель монет навсегда
 
-    print("Что бы начать игру скажите Кеше название игры")
+# Ограничения по уровням для улучшений
+speed_level = 0
+max_speed_level = 3  # Максимальный уровень скорости
+fire_rate_level = 0
+max_fire_rate_level = 4  # Максимальный уровень скорострельности
 
-    print("- Игры - Открывает яндекс игры")
-    print("- FIreKill (Поиграйте очень интересно =) - ")
-    print("- Виселица - ")
-    print("- Крестики-Нолики - ")
-    print("- Угадай число - ")
-    print("- Квест - ")
-    print("- Викторина - ")
-    print("- Камень ножницы бумага - ")
-    print("- Угадай число - ")
+# Списки скинов
+sk1 = [player1_sk1, player2_sk1]  # Обычный скин
+sk2 = [player1_sk2, player2_sk2]  # Второй скин
 
-    # Запуск потоков
-    threading.Thread(target=listen_for_wake_word, daemon=True).start()
-    threading.Thread(target=process_commands, daemon=True).start()
+# Текущий активный набор скинов
+skins = sk1
 
-    try:
-        while True:
-            time.sleep(0.1)
-    except KeyboardInterrupt:
-        re("Выключаюсь")
-        os._exit(0)
+# Создаем кнопки магазина
+shop_buttons = [
+    Button(470, 200, 600, 60, "Увеличить скорость стрельбы", 50, "faster_fire"),
+    Button(470, 300, 600, 60, "Дополнительная жизнь", 100, "extra_life"),
+    Button(470, 400, 600, 60, "Увеличить скорость игрока", 75, "faster_move"),
+    Button(470, 500, 600, 60, "Купить скин для игрока", 200, "buy_skin2"),
+    Button(470, 600, 600, 60, "x2 монеты навсегда", 300, "coin_multiplier"),
+    Button(470, 700, 600, 60, "Закрыть магазин", 0, "close_shop")
+]
 
-if __name__ == "__main__":
-    main()
+# Переменная для сообщения о недостатке монет
+not_enough_coins_message = ""
+not_enough_coins_timer = 0
+
+while running:
+    mouse_clicked = False
+    mouse_pos = p.mouse.get_pos()
+    
+    for event in p.event.get():
+        if event.type == p.QUIT:
+            running = False
+
+        if event.type == p.MOUSEBUTTONDOWN:
+            mouse_clicked = True
+            
+
+        if game_over and event.type == p.KEYDOWN:
+            if event.key == p.K_r:
+                game_over = False
+                x = 0
+                y = 200
+                fireballs = []
+                enemies = []
+                coins = []
+                speed = 15
+                fire_cooldown_max = 60
+                fire_cooldown = 0
+                can_fire = True
+                current_skin = player1_sk1
+                shooting_animation_time = 0
+                score = 0
+                coins_collected = 0
+                enemy_spawn_timer = 0
+                lives = 3
+                invulnerability_timer = 0
+                extra_lives = 0
+                current_skin_set = 1
+                skins = sk1
+                skin2_unlocked = False
+                begin_time = time.time()  # Сбрасываем таймер при перезапуске
+                final_time = 0  # Сбрасываем время окончания
+                # Множитель монет сохраняется после перезапуска, так как он куплен навсегда
+                speed_level = 0
+                fire_rate_level = 0
+
+    if shop_open:
+        # Отрисовка магазина
+        screen.blit(shop_bg, (0, 0))
+        
+        title_text = big_font.render("МАГАЗИН", True, (255, 215, 0))
+        screen.blit(title_text, (620, 50))
+        
+        coins_text = big_font.render(f"Монеты: {coins_collected}", True, (255, 215, 0))
+        screen.blit(coins_text, (600, 120))
+        
+        if skin2_unlocked:
+            unlocked_text = font.render("2 скин разблокирован!", True, (0, 255, 0))
+            screen.blit(unlocked_text, (600, 210))
+        
+        # Отрисовка кнопок
+        for button in shop_buttons:
+            # Если это кнопка покупки скина и он уже куплен, меняем текст
+            if button.action == "buy_skin2" and skin2_unlocked:
+                button.text = "Переключить скин"
+                button.price = 0
+            elif button.action == "buy_skin2" and not skin2_unlocked:
+                button.text = "Купить скин для игрока"
+                button.price = 200
+                
+            # Если это кнопка множителя монет и он уже куплен, меняем текст
+            if button.action == "coin_multiplier" and coin_multiplier_unlocked:
+                button.text = "x2 монеты активирован"
+                button.price = 0
+            elif button.action == "coin_multiplier" and not coin_multiplier_unlocked:
+                button.text = "x2 монеты навсегда"
+                button.price = 300
+                
+            # Обновляем текст для улучшений с учетом уровней
+            if button.action == "faster_move":
+                if speed_level >= max_speed_level:
+                    button.text = "Скорость макс. уровень"
+                    button.price = 0
+                else:
+                    button.text = f"Увеличить скорость (ур. {speed_level + 1}/{max_speed_level})"
+                    button.price = 75 + speed_level * 25  # Цена увеличивается с уровнем
+                    
+            if button.action == "faster_fire":
+                if fire_rate_level >= max_fire_rate_level:
+                    button.text = "Скорострельность макс. уровень"
+                    button.price = 0
+                else:
+                    button.text = f"Увеличить перезарядку (ур. {fire_rate_level + 1}/{max_fire_rate_level})"
+                    button.price = 50 + fire_rate_level * 20  # Цена увеличивается с уровнем
+                
+            button.check_hover(mouse_pos)
+            button.draw()
+            
+            if mouse_clicked and button.check_click(mouse_pos, True):
+                if button.action == "close_shop":
+                    shop_open = False
+                elif button.action == "extra_life":
+                    if coins_collected >= button.price:
+                        coins_collected -= button.price
+                        lives += 1
+                        extra_lives += 1
+                    else:
+                        not_enough_coins_message = "Недостаточно монет!"
+                        not_enough_coins_timer = 120
+                elif button.action == "faster_fire":
+                    if fire_rate_level < max_fire_rate_level:
+                        if coins_collected >= button.price:
+                            coins_collected -= button.price
+                            fire_cooldown_max = max(10, fire_cooldown_max - 12)
+                            fire_rate_level += 1
+                        else:
+                            not_enough_coins_message = "Недостаточно монет!"
+                            not_enough_coins_timer = 120
+                    else:
+                        not_enough_coins_message = "Максимальный уровень достигнут!"
+                        not_enough_coins_timer = 120
+                elif button.action == "faster_move":
+                    if speed_level < max_speed_level:
+                        if coins_collected >= button.price:
+                            coins_collected -= button.price
+                            speed = min(30, speed + 5)
+                            speed_level += 1
+                        else:
+                            not_enough_coins_message = "Недостаточно монет!"
+                            not_enough_coins_timer = 120
+                    else:
+                        not_enough_coins_message = "Максимальный уровень достигнут!"
+                        not_enough_coins_timer = 120
+                elif button.action == "buy_skin2":
+                    if not skin2_unlocked:
+                        if coins_collected >= 200:
+                            coins_collected -= 200
+                            skin2_unlocked = True
+                        else:
+                            not_enough_coins_message = "Недостаточно монет!"
+                            not_enough_coins_timer = 120
+                    else:
+                        # Переключаем скин только если он уже куплен
+                        if current_skin_set == 1:
+                            current_skin_set = 2
+                            skins = sk2
+                            current_skin = sk2[0]
+                        else:
+                            current_skin_set = 1
+                            skins = sk1
+                            current_skin = sk1[0]
+                elif button.action == "coin_multiplier":
+                    if not coin_multiplier_unlocked:
+                        if coins_collected >= 300:
+                            coins_collected -= 300
+                            coin_multiplier = 2
+                            coin_multiplier_unlocked = True
+                        else:
+                            not_enough_coins_message = "Недостаточно монет!"
+                            not_enough_coins_timer = 120
+        
+        # Отображение сообщения о недостатке монет
+        if not_enough_coins_timer > 0:
+            error_text = font.render(not_enough_coins_message, True, (255, 0, 0))
+            screen.blit(error_text, (620, 660))
+            not_enough_coins_timer -= 1
+            
+    elif not game_over:
+        screen.blit(bg, (0, 0))
+        
+        keys = p.key.get_pressed()
+        
+        # Движение игрока
+        if keys[p.K_RIGHT] and x < 1000:
+            x += speed
+        if keys[p.K_LEFT] and x > 0: 
+            x -= speed
+        if keys[p.K_DOWN] and y < 550: 
+            y += speed
+        if keys[p.K_UP] and not y < 10: 
+            y -= speed
+
+        # Обработка стрельбы
+        if keys[p.K_SPACE] and can_fire:
+            # Создаем файрбол с указанием текущего скина
+            fireballs.append(Fireball(x + 120, y + 50, current_skin_set))
+            can_fire = False
+            fire_cooldown = fire_cooldown_max
+            shooting_animation_time = 15
+            current_skin = skins[1]  # Используем стреляющий скин из текущего набора
+        
+        # Обновляем анимацию стрельбы
+        if shooting_animation_time > 0:
+            shooting_animation_time -= 1
+            if shooting_animation_time == 0:
+                current_skin = skins[0]  # Возвращаем обычный скин из текущего набора
+        
+        # Обновляем перезарядку
+        if not can_fire:
+            fire_cooldown -= 1
+            if fire_cooldown <= 0:
+                can_fire = True
+                fire_cooldown = 0
+
+        # Обновляем таймер неуязвимости
+        if invulnerability_timer > 0:
+            invulnerability_timer -= 1
+
+        # Спавн врагов
+        enemy_spawn_timer += 1
+        if enemy_spawn_timer >= 120:
+            enemy_y = random.randint(50, 550)
+            enemies.append(Enemy(1550, enemy_y))
+            enemy_spawn_timer = 0
+
+        # Отрисовка иконки магазина
+        shop_rect = p.Rect(1370, 5, 150, 100)
+        screen.blit(shop_icon, (1370, 5))
+        
+        # Проверка клика по магазину
+        if mouse_clicked and shop_rect.collidepoint(mouse_pos):
+            shop_open = True
+
+        # Рисуем игрока
+        if invulnerability_timer == 0 or invulnerability_timer % 10 < 5:
+            screen.blit(current_skin, (x, y))
+
+        # Обновляем файрболы
+        for fb in fireballs[:]:
+            fb.update()
+            
+            for enemy in enemies[:]:
+                if fb.active and enemy.active:
+                    if fb.get_rect().colliderect(enemy.get_rect()):
+                        if enemy.hit():
+                            score += 10
+                            enemy.drop_coin(coins)
+                        fb.active = False
+                        break
+            
+            if fb.active:
+                fb.draw()
+            else:
+                fireballs.remove(fb)
+
+        # Обновляем врагов
+        player_rect = p.Rect(x, y, 100, 180)
+ 
+        for enemy in enemies[:]:
+            enemy.update()
+            
+            if enemy.active and invulnerability_timer == 0:
+                if enemy.get_rect().colliderect(player_rect):
+                    lives -= 1
+                    invulnerability_timer = 120
+                    enemy.active = False
+                    
+                    if lives <= 0:
+                        game_over = True
+                        final_time = time.time()  # Записываем время окончания игры
+            
+            if enemy.active:
+                enemy.draw()
+            else:
+                enemies.remove(enemy)
+
+        # Обновляем монеты
+        for coin in coins[:]:
+            coin.update()
+            
+            if coin.active and coin.get_rect().colliderect(player_rect):
+                coins_collected += coin.value * coin_multiplier  # Умножаем на множитель
+                score += coin.value * 2 * coin_multiplier  # Умножаем на множитель
+                coin.active = False
+            
+            if coin.active:
+                coin.draw()
+            else:
+                coins.remove(coin)
+
+        # Интерфейс
+        if not can_fire:
+            cooldown_text = font.render(f'Перезарядка: {fire_cooldown/60:.1f} сек', True, (255, 0, 0))
+            screen.blit(cooldown_text, (10, 10))
+        else:
+            ready_text = font.render('Готов к стрельбе!', True, (0, 255, 0))
+            screen.blit(ready_text, (10, 10))
+
+        score_text = font.render(f'Счет: {score}', True, (255, 255, 255))
+        screen.blit(score_text, (10, 50))
+
+        coins_text = font.render(f'Монеты: {coins_collected}', True, (255, 215, 0))
+        screen.blit(coins_text, (10, 90))
+
+        if lives >= 3:
+            screen.blit(h3, (0, 100))
+        elif lives == 2:
+            screen.blit(h2, (0, 100))
+        elif lives == 1:
+            screen.blit(h1, (0, 100))
+
+        if lives > 3:
+            extra_text = font.render(f'+{lives - 3}', True, (0, 255, 0))
+            screen.blit(extra_text, (140, 130))
+
+    else:
+        # Вычисляем время игры только если игра окончена
+        if final_time == 0:
+            final_time = time.time()  # Записываем время окончания, если еще не записано
+            
+        elapsed_time = final_time - begin_time
+        
+        # Форматируем время
+        minutes = int(elapsed_time // 60)
+        seconds = int(elapsed_time % 60)
+        
+        if minutes == 0:
+            main_time = f"{seconds} секунд"
+        elif minutes == 1:
+            if seconds == 0:
+                main_time = "1 минута"
+            else:
+                main_time = f"1 минута и {seconds} секунд"
+        else:
+            if seconds == 0:
+                main_time = f"{minutes} минут"
+            else:
+                main_time = f"{minutes} минут и {seconds} секунд"
+
+        # Экран окончания игры
+        screen.blit(go, (0, 0))
+        game_over_text = big_font.render(f'Счет: {score}', True, (255, 0, 0))
+        coins_text = big_font.render(f'Монеты: {coins_collected}', True, (255, 215, 0))
+        restart_text = big_font.render('Нажмите R для перезапуска', True, (255, 255, 255))
+        time_text = big_font.render(f'Время игры: {main_time}', True, (255, 255, 255))
+        
+        screen.blit(game_over_text, (900, 600))
+        screen.blit(coins_text, (400, 600))
+        screen.blit(restart_text, (400, 700))
+        screen.blit(time_text, (390, 90))
+
+    p.display.update()
+    clock.tick(60)
+
+p.quit()
