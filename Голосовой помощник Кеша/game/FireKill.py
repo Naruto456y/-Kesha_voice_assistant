@@ -4,7 +4,7 @@ print(__file__)
 p.init()
 screen = p.display.set_mode((1550, 800))
 p.display.set_caption('FireKill')
-icon = p.image.load(__file__.replace('FireKill.py','icon.jpeg')).convert_alpha()
+icon = p.image.load(__file__.replace('FireKill.py','icon.png')).convert_alpha()
 p.display.set_icon(icon)
 # Создаём 1 спрайт 1 скина игрока
 player1_sk1 = p.image.load(__file__.replace('FireKill.py','player1_sk1.png')).convert_alpha()
@@ -211,11 +211,17 @@ lives = 3
 invulnerability_timer = 0
 extra_lives = 0
 current_skin_set = 1  # 1 = первый скин, 2 = второй скин
-skin2_unlocked = True  # Второй скин изначально заблокирован
+skin2_unlocked = False  # Второй скин изначально заблокирован
 begin_time = time.time()
 final_time = 0  # Добавляем переменную для хранения времени окончания игры
 coin_multiplier = 1  # Множитель монет (1 = обычное количество, 2 = двойное)
 coin_multiplier_unlocked = False  # Куплен ли множитель монет навсегда
+
+# Ограничения по уровням для улучшений
+speed_level = 0
+max_speed_level = 3  # Максимальный уровень скорости
+fire_rate_level = 0
+max_fire_rate_level = 4  # Максимальный уровень скорострельности
 
 # Списки скинов
 sk1 = [player1_sk1, player2_sk1]  # Обычный скин
@@ -276,6 +282,8 @@ while running:
                 begin_time = time.time()  # Сбрасываем таймер при перезапуске
                 final_time = 0  # Сбрасываем время окончания
                 # Множитель монет сохраняется после перезапуска, так как он куплен навсегда
+                speed_level = 0
+                fire_rate_level = 0
 
     if shop_open:
         # Отрисовка магазина
@@ -309,6 +317,23 @@ while running:
                 button.text = "x2 монеты навсегда"
                 button.price = 300
                 
+            # Обновляем текст для улучшений с учетом уровней
+            if button.action == "faster_move":
+                if speed_level >= max_speed_level:
+                    button.text = "Скорость макс. уровень"
+                    button.price = 0
+                else:
+                    button.text = f"Увеличить скорость (ур. {speed_level + 1}/{max_speed_level})"
+                    button.price = 75 + speed_level * 25  # Цена увеличивается с уровнем
+                    
+            if button.action == "faster_fire":
+                if fire_rate_level >= max_fire_rate_level:
+                    button.text = "Скорострельность макс. уровень"
+                    button.price = 0
+                else:
+                    button.text = f"Увеличить перезарядку (ур. {fire_rate_level + 1}/{max_fire_rate_level})"
+                    button.price = 50 + fire_rate_level * 20  # Цена увеличивается с уровнем
+                
             button.check_hover(mouse_pos)
             button.draw()
             
@@ -324,18 +349,28 @@ while running:
                         not_enough_coins_message = "Недостаточно монет!"
                         not_enough_coins_timer = 120
                 elif button.action == "faster_fire":
-                    if coins_collected >= button.price:
-                        fire_cooldown_max = max(10, fire_cooldown_max - 12)
-                        coins_collected -= button.price
+                    if fire_rate_level < max_fire_rate_level:
+                        if coins_collected >= button.price:
+                            coins_collected -= button.price
+                            fire_cooldown_max = max(10, fire_cooldown_max - 12)
+                            fire_rate_level += 1
+                        else:
+                            not_enough_coins_message = "Недостаточно монет!"
+                            not_enough_coins_timer = 120
                     else:
-                        not_enough_coins_message = "Недостаточно монет!"
+                        not_enough_coins_message = "Максимальный уровень достигнут!"
                         not_enough_coins_timer = 120
                 elif button.action == "faster_move":
-                    if coins_collected >= button.price:
-                        speed = min(30, speed + 5)
-                        coins_collected -= button.price
+                    if speed_level < max_speed_level:
+                        if coins_collected >= button.price:
+                            coins_collected -= button.price
+                            speed = min(30, speed + 5)
+                            speed_level += 1
+                        else:
+                            not_enough_coins_message = "Недостаточно монет!"
+                            not_enough_coins_timer = 120
                     else:
-                        not_enough_coins_message = "Недостаточно монет!"
+                        not_enough_coins_message = "Максимальный уровень достигнут!"
                         not_enough_coins_timer = 120
                 elif button.action == "buy_skin2":
                     if not skin2_unlocked:
@@ -368,7 +403,7 @@ while running:
         # Отображение сообщения о недостатке монет
         if not_enough_coins_timer > 0:
             error_text = font.render(not_enough_coins_message, True, (255, 0, 0))
-            screen.blit(error_text, (620, 650))
+            screen.blit(error_text, (620, 660))
             not_enough_coins_timer -= 1
             
     elif not game_over:
