@@ -67,6 +67,7 @@ fireball2 = p.transform.scale(fireball2, (100, 100))
 # Шрифты
 font = p.font.SysFont('Arial', 30)
 big_font = p.font.SysFont('Arial', 60)
+small_font = p.font.SysFont('Arial', 24)
 
 clock = p.time.Clock()
 
@@ -190,9 +191,37 @@ class Button:
     def check_click(self, mouse_pos, mouse_click):
         return self.rect.collidepoint(mouse_pos) and mouse_click
 
+# Класс для кнопок выбора управления
+class ControlButton:
+    def __init__(self, x, y, width, height, text):
+        self.rect = p.Rect(x, y, width, height)
+        self.text = text
+        self.color = (100, 100, 200)
+        self.hover_color = (150, 150, 250)
+        self.is_hovered = False
+        self.selected = False
+    
+    def draw(self):
+        color = self.hover_color if self.is_hovered else self.color
+        if self.selected:
+            color = (0, 200, 0)  # Зеленый для выбранного варианта
+        p.draw.rect(screen, color, self.rect)
+        p.draw.rect(screen, (0, 0, 0), self.rect, 2)
+        text_surface = font.render(self.text, True, (255, 255, 255))
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        screen.blit(text_surface, text_rect)
+    
+    def check_hover(self, mouse_pos):
+        self.is_hovered = self.rect.collidepoint(mouse_pos)
+        return self.is_hovered
+    
+    def check_click(self, mouse_pos, mouse_click):
+        return self.rect.collidepoint(mouse_pos) and mouse_click
+
 running = True
 game_over = False
 shop_open = False
+show_instructions = True  # Показывать инструкцию в начале
 x = 0
 y = 200
 fireballs = []
@@ -216,6 +245,7 @@ begin_time = time.time()
 final_time = 0  # Добавляем переменную для хранения времени окончания игры
 coin_multiplier = 1  # Множитель монет (1 = обычное количество, 2 = двойное)
 coin_multiplier_unlocked = False  # Куплен ли множитель монет навсегда
+mouse_control = False  # Управление мышкой (False - клавиатура, True - мышка)
 
 # Ограничения по уровням для улучшений
 speed_level = 0
@@ -238,6 +268,12 @@ shop_buttons = [
     Button(470, 500, 600, 60, "Купить скин для игрока", 200, "buy_skin2"),
     Button(470, 600, 600, 60, "x2 монеты навсегда", 300, "coin_multiplier"),
     Button(470, 700, 600, 60, "Закрыть магазин", 0, "close_shop")
+]
+
+# Создаем кнопки выбора управления
+control_buttons = [
+    ControlButton(300, 430, 320, 60, "Клавиатура (стрелки)"),
+    ControlButton(900, 430, 250, 60, "Мышь")
 ]
 
 # Переменная для сообщения о недостатке монет
@@ -278,14 +314,71 @@ while running:
                 extra_lives = 0
                 current_skin_set = 1
                 skins = sk1
-                skin2_unlocked = False
                 begin_time = time.time()  # Сбрасываем таймер при перезапуске
                 final_time = 0  # Сбрасываем время окончания
-                # Множитель монет сохраняется после перезапуска, так как он куплен навсегда
                 speed_level = 0
                 fire_rate_level = 0
 
-    if shop_open:
+    if show_instructions:
+        # Экран инструкции и выбора управления
+        screen.blit(bg, (0, 0))
+        
+        title_text = big_font.render("FireKill - Инструкция", True, (255, 0, 0))
+        screen.blit(title_text, (500, 50))
+        
+        # Инструкция
+        instructions = [
+            "Цель игры: уничтожайте врагов и собирайте монеты!",
+            "Избегайте столкновений с врагами - они отнимают жизни.",
+            "Заходите в магазин (иконка справа вверху) для улучшений:",
+            "- Увеличение скорости стрельбы и движения",
+            "- Дополнительные жизни",
+            "- Новые скины и x2 множитель монет",
+            "",
+            "Выберите способ управления:"
+        ]
+        
+        for i, line in enumerate(instructions):
+            instr_text = small_font.render(line, True, (255, 255, 255))
+            screen.blit(instr_text, (300, 150 + i * 30))
+        
+        # Управление клавиатурой
+        key_text = small_font.render("Клавиатура: Стрелки - движение, Пробел - стрельба", True, (200, 200, 0))
+        screen.blit(key_text, (800, 320))
+        
+        # Управление мышкой
+        mouse_text = small_font.render("Мышь: Движение - курсор, ЛКМ - стрельба", True, (200, 200, 0))
+        screen.blit(mouse_text, (800, 350))
+        
+        # Кнопки выбора управления
+        for button in control_buttons:
+            button.check_hover(mouse_pos)
+            button.draw()
+            
+            if mouse_clicked and button.check_click(mouse_pos, True):
+                if button.text == "Клавиатура (стрелки)":
+                    mouse_control = False
+                    control_buttons[0].selected = True
+                    control_buttons[1].selected = False
+                else:
+                    mouse_control = True
+                    control_buttons[0].selected = False
+                    control_buttons[1].selected = True
+        
+        # Кнопка начала игры
+        start_button = p.Rect(520, 570, 460, 80)
+        p.draw.rect(screen, (0, 150, 0), start_button)
+        p.draw.rect(screen, (0, 0, 0), start_button, 3)
+        start_text = big_font.render("НАЧАТЬ ИГРУ", True, (255, 255, 255))
+        screen.blit(start_text, (550, 580))
+        
+        text_or = big_font.render('ИЛИ', True, 'white')
+        screen.blit(text_or, (700, 430))
+
+        if mouse_clicked and start_button.collidepoint(mouse_pos):
+            show_instructions = False
+            
+    elif shop_open:
         # Отрисовка магазина
         screen.blit(shop_bg, (0, 0))
         
@@ -412,23 +505,36 @@ while running:
         keys = p.key.get_pressed()
         
         # Движение игрока
-        if keys[p.K_RIGHT] and x < 1000:
-            x += speed
-        if keys[p.K_LEFT] and x > 0: 
-            x -= speed
-        if keys[p.K_DOWN] and y < 550: 
-            y += speed
-        if keys[p.K_UP] and not y < 10: 
-            y -= speed
+        if mouse_control:
+            # Управление мышкой
+            x = max(0, min(mouse_pos[0] - 50, 1000))  # Центрируем игрока по курсору
+            y = max(10, min(mouse_pos[1] - 90, 550))
+            
+            # Стрельба по ЛКМ
+            if mouse_clicked and can_fire:
+                fireballs.append(Fireball(x + 120, y + 50, current_skin_set))
+                can_fire = False
+                fire_cooldown = fire_cooldown_max
+                shooting_animation_time = 15
+                current_skin = skins[1]
+        else:
+            # Управление клавиатурой
+            if keys[p.K_RIGHT] and x < 1000:
+                x += speed
+            if keys[p.K_LEFT] and x > 0: 
+                x -= speed
+            if keys[p.K_DOWN] and y < 550: 
+                y += speed
+            if keys[p.K_UP] and not y < 10: 
+                y -= speed
 
-        # Обработка стрельбы
-        if keys[p.K_SPACE] and can_fire:
-            # Создаем файрбол с указанием текущего скина
-            fireballs.append(Fireball(x + 120, y + 50, current_skin_set))
-            can_fire = False
-            fire_cooldown = fire_cooldown_max
-            shooting_animation_time = 15
-            current_skin = skins[1]  # Используем стреляющий скин из текущего набора
+            # Обработка стрельбы
+            if keys[p.K_SPACE] and can_fire:
+                fireballs.append(Fireball(x + 120, y + 50, current_skin_set))
+                can_fire = False
+                fire_cooldown = fire_cooldown_max
+                shooting_animation_time = 15
+                current_skin = skins[1]
         
         # Обновляем анимацию стрельбы
         if shooting_animation_time > 0:
@@ -533,16 +639,21 @@ while running:
         coins_text = font.render(f'Монеты: {coins_collected}', True, (255, 215, 0))
         screen.blit(coins_text, (10, 90))
 
+        # Отображение текущего режима управления
+        control_mode = "Мышь" if mouse_control else "Клавиатура"
+        control_text = font.render(f'Управление: {control_mode}', True, (200, 200, 100))
+        screen.blit(control_text, (10, 130))
+
         if lives >= 3:
-            screen.blit(h3, (0, 100))
+            screen.blit(h3, (0, 130))
         elif lives == 2:
-            screen.blit(h2, (0, 100))
+            screen.blit(h2, (0, 130))
         elif lives == 1:
-            screen.blit(h1, (0, 100))
+            screen.blit(h1, (0, 130))
 
         if lives > 3:
             extra_text = font.render(f'+{lives - 3}', True, (0, 255, 0))
-            screen.blit(extra_text, (140, 130))
+            screen.blit(extra_text, (140, 160))
 
     else:
         # Вычисляем время игры только если игра окончена
