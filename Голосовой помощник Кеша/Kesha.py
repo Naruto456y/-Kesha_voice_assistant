@@ -34,6 +34,7 @@ from pydub.playback import play
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import quote
+import gig
 
 def get_text_with_url(url, class_name):
         """
@@ -642,7 +643,7 @@ def handle_command(text):
             os.system("shutdown /s /t 10")
 
         else:
-            re('Не понял команду. Попробуйте еще раз.')
+            re(gig.ask_gigachat(text))
 
     except Exception as e:
         re('Произошла ошибка при обработке команды')
