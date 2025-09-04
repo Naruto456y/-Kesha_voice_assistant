@@ -31,6 +31,49 @@ from youtube_search import YoutubeSearch
 import mouse
 from pydub import AudioSegment
 from pydub.playback import play
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import quote
+
+def get_text_with_url(url, class_name):
+        """
+        Функция для получения текста из элемента с указанным классом на веб-странице
+
+        Args:
+        url (str): URL-адрес страницы
+        class_name (str): название класса элемента
+
+        Returns:
+        str: текст элемента или сообщение об ошибке
+        """
+        try:
+            # Кодируем URL для обработки русских символов
+            encoded_url = quote(url, safe=':/?&=')
+            
+            # Добавляем заголовки чтобы избежать блокировки
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        
+            # Отправляем запрос
+            response = requests.get(encoded_url, headers=headers, timeout=10)
+            response.raise_for_status()  # Проверяем статус ответа
+
+            # Парсим HTML
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            # Ищем элемент по классу
+            element = soup.find(class_=class_name)
+
+            if element:
+                return element.text.strip()
+            else:
+                return f"Элемент с классом '{class_name}' не найден"
+
+        except requests.exceptions.RequestException as e:
+            return f"Ошибка запроса: {e}"
+        except Exception as e:
+            return f"Произошла ошибка: {e}"
 
 def start(name, game = False):
     """Открывает файл или паппку в этой папке"""
@@ -461,13 +504,14 @@ def handle_command(text):
             else:
                 re('Что именно вам найти?')
 
-        elif 'погода' in text:
-            webbrowser.open_new_tab('https://yandex.ru/pogoda/')
-            re('Открываю прогноз погоды')
-
+        elif 'погод' in text:
+            a = get_text_with_url('https://rp5.ru/Погода_в_Сосенках,_Москва','t_0')
+            re(a)
+            
         elif 'fire kill' in text:
             start(r'game\FireKill.py')
             re('Запускаю')
+            
         elif 'открой настройки' in text:
             keyboard.send('Win + I')
             re('Есть')
