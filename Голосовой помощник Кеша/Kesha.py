@@ -643,7 +643,11 @@ def handle_command(text):
             os.system("shutdown /s /t 10")
 
         else:
-            re(gig.ask_gigachat(text))
+            ans = gig.ask_gigachat(text)
+            ans = ans.replace('*', '')
+            ans = ans.replace('%', '')
+            ans = ans.replace('$', '')
+            re(ans)
 
     except Exception as e:
         re('Произошла ошибка при обработке команды')
