@@ -11,94 +11,158 @@ import AppOpener
 import threading
 import queue
 import psutil
-import os
-import time
-import threading
-import queue
 import tempfile
-import pygame
-import speech_recognition as sr
-from gtts import gTTS
-import webbrowser
-import keyboard
-from datetime import datetime
-import psutil
-import AppOpener
-from ctypes import cast, POINTER
-from comtypes import CLSCTX_ALL
-from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-from youtube_search import YoutubeSearch
-import mouse
-from pydub import AudioSegment
-from pydub.playback import play
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import quote
 import gig
+from youtube_search import YoutubeSearch
+import mouse
+
+# Инициализация PyGame для интерфейса
+pygame.init()
+WIDTH, HEIGHT = 1000, 700
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Голосовой помощник Кеша")
+
+# Цвета
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+GRAY = (200, 200, 200)
+LIGHT_BLUE = (173, 216, 230)
+DARK_BLUE = (0, 0, 139)
+YELLOW = (255, 255, 0)
+
+# Шрифты
+font_large = pygame.font.SysFont('Arial', 32)
+font_medium = pygame.font.SysFont('Arial', 20)
+font_small = pygame.font.SysFont('Arial', 16)
+font_tiny = pygame.font.SysFont('Arial', 14)
+
+# Состояние интерфейса
+class UIState:
+    def __init__(self):
+        self.is_listening = False
+        self.is_wake_word_detected = False
+        self.last_command = ""
+        self.status = "Готов к работе"
+        self.status_color = GREEN
+        self.messages = []
+        self.commands_page = 0
+        self.total_command_pages = 0
+        self.animation_counter = 0
+
+ui_state = UIState()
+
+# Полный список команд
+COMMAND_CATEGORIES = {
+    "🎯 Основные команды": [
+        "Привет - Поприветствовать",
+        "Как дела - Узнать состояние",
+        "Молодец - Похвалить",
+        "Пока/Стоп/Выход - Завершить работу"
+    ],
+    "🌐 Интернет и поиск": [
+        "Найди [запрос] - Поиск в интернете",
+        "Найди в ютуби [запрос] - Поиск на YouTube",
+        "Youtube - Открыть YouTube",
+        "Игры - Открыть Яндекс Игры",
+        "Погода - Узнать погоду",
+        "Переводчик - Открыть переводчик"
+    ],
+    "🎮 Игры": [
+        "Камень ножницы бумага - Запустить игру",
+        "Виселица - Запустить игру",
+        "Викторина - Запустить игру",
+        "Шахматы - Запустить шахматы",
+        "Квест - Запустить игру",
+        "Крестики-нолики - Запустить игру",
+        "Угадай число - Запустить игру",
+        "FireKill - Запустить игру"
+    ],
+    "💻 Система и приложения": [
+        "Открой [приложение] - Открыть программу",
+        "Закрой [приложение] - Закрыть программу",
+        "Открой проводник - Открыть файловый менеджер",
+        "Открой настройки - Открыть настройки системы",
+        "Сверни окно - Свернуть текущее окно",
+        "Закрой окно - Закрыть текущее окно"
+    ],
+    "🎵 Медиа и управление": [
+        "Музыка - Открыть музыку",
+        "Музыка [название] - Найти музыку",
+        "Пауза - Поставить на паузу",
+        "Дальше - Следующий трек",
+        "Пробел - Нажать пробел",
+        "Громче - Увеличить громкость",
+        "Тише - Уменьшить громкость",
+        "Громкость [1-100] - Установить громкость"
+    ],
+    "⚙️ Системная информация": [
+        "Время - Текущее время",
+        "Состояние батареи - Информация о батарее",
+        "Выключи компьютер - Выключить ПК"
+    ],
+    "🔧 Специальные команды": [
+        "Переведи на английский [текст] - Перевод",
+        "Переведи на русский [текст] - Перевод",
+        "Включи свет - Умный дом",
+        "Выключи свет - Умный дом",
+        "Поставь таймер на [минуты] - Таймер",
+        "Телефон - Совершить звонок"
+    ]
+}
+
+# Вычисляем общее количество страниц команд
+all_commands = []
+for category, commands in COMMAND_CATEGORIES.items():
+    all_commands.append(category)
+    all_commands.extend(commands)
+
+ui_state.total_command_pages = (len(all_commands) + 7) // 8  # 8 команд на страницу
 
 def get_text_with_url(url, class_name):
-        """
-        Функция для получения текста из элемента с указанным классом на веб-странице
-
-        Args:
-        url (str): URL-адрес страницы
-        class_name (str): название класса элемента
-
-        Returns:
-        str: текст элемента или сообщение об ошибке
-        """
-        try:
-            # Кодируем URL для обработки русских символов
-            encoded_url = quote(url, safe=':/?&=')
-            
-            # Добавляем заголовки чтобы избежать блокировки
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
+    """Функция для получения текста из элемента с указанным классом на веб-странице"""
+    try:
+        encoded_url = quote(url, safe=':/?&=')
         
-            # Отправляем запрос
-            response = requests.get(encoded_url, headers=headers, timeout=10)
-            response.raise_for_status()  # Проверяем статус ответа
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+    
+        response = requests.get(encoded_url, headers=headers, timeout=10)
+        response.raise_for_status()
 
-            # Парсим HTML
-            soup = BeautifulSoup(response.content, 'html.parser')
+        soup = BeautifulSoup(response.content, 'html.parser')
+        element = soup.find(class_=class_name)
 
-            # Ищем элемент по классу
-            element = soup.find(class_=class_name)
+        if element:
+            return element.text.strip()
+        else:
+            return f"Элемент с классом '{class_name}' не найден"
 
-            if element:
-                return element.text.strip()
-            else:
-                return f"Элемент с классом '{class_name}' не найден"
+    except requests.exceptions.RequestException as e:
+        return f"Ошибка запроса: {e}"
+    except Exception as e:
+        return f"Произошла ошибка: {e}"
 
-        except requests.exceptions.RequestException as e:
-            return f"Ошибка запроса: {e}"
-        except Exception as e:
-            return f"Произошла ошибка: {e}"
-
-def start(name, game = False):
-    """Открывает файл или паппку в этой папке"""
+def start(name):
+    """Открывает файл или папку в этой папке"""
     path = __file__.replace('Kesha.py', name)
     os.startfile(path)
 
 def search_and_open_youtube(query):
-    """
-    Ищет видео на YouTube по запросу и открывает первое найденное видео в браузере.
-    
-    :param query: Строка поискового запроса.
-    :return: None (открывает ссылку в браузере).
-    """
-    # Получаем результаты поиска
-    results = YoutubeSearch(query, max_results=1).to_dict()  # Берём только первый результат
+    """Ищет видео на YouTube по запросу и открывает первое найденное видео в браузере"""
+    results = YoutubeSearch(query, max_results=1).to_dict()
     
     if not results:
         print("Ничего не найдено.")
         return
     
-    # Формируем полную ссылку на видео
     video_url = f"https://youtube.com{results[0]['url_suffix']}"
-    
-    # Открываем ссылку в браузере
     webbrowser.open(video_url)
     print(f"Открываю видео: {results[0]['title']}")
 
@@ -119,6 +183,9 @@ class Config:
 
 # Инициализация управления громкостью
 try:
+    from ctypes import cast, POINTER
+    from comtypes import CLSCTX_ALL
+    from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
     devices = AudioUtilities.GetSpeakers()
     interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
     volume_control = cast(interface, POINTER(IAudioEndpointVolume))
@@ -132,6 +199,7 @@ class AudioManager:
     def __init__(self):
         self._init_mixer()
         self.playback_thread = None
+        self.is_speaking = False
 
     def _init_mixer(self):
         try:
@@ -145,6 +213,11 @@ class AudioManager:
             return
 
         try:
+            # Добавляем сообщение в интерфейс
+            ui_state.messages.append(("Кеша", text))
+            if len(ui_state.messages) > 10:
+                ui_state.messages.pop(0)
+                
             filename = os.path.join(TEMP_DIR, f"voice_{int(time.time()*1000)}.mp3")
             tts = gTTS(text=text, lang='ru', slow=False)
             tts.save(filename)
@@ -153,6 +226,7 @@ class AudioManager:
                 pygame.mixer.music.stop()
                 self.playback_thread.join(timeout=0.1)
 
+            self.is_speaking = True
             try:
                 pygame.mixer.music.load(filename)
                 pygame.mixer.music.play()
@@ -180,6 +254,7 @@ class AudioManager:
                 os.remove(filename)
         except:
             pass
+        self.is_speaking = False
 
 audio_manager = AudioManager()
 
@@ -195,16 +270,40 @@ class VoiceRecognizer:
         """Слушаем микрофон с таймаутом"""
         with sr.Microphone() as source:
             try:
+                ui_state.is_listening = True
+                ui_state.status = "Слушаю..."
+                ui_state.status_color = BLUE
+                
+                # Ждем, пока Кеша закончит говорить
+                while audio_manager.is_speaking:
+                    time.sleep(0.1)
+                
                 audio = self.recognizer.listen(
                     source, 
                     timeout=timeout,
                     phrase_time_limit=Config.PHRASE_LIMIT
                 )
-                return self.recognizer.recognize_google(audio, language='ru-RU').lower()
+                text = self.recognizer.recognize_google(audio, language='ru-RU').lower()
+                
+                ui_state.messages.append(("Вы", text))
+                if len(ui_state.messages) > 10:
+                    ui_state.messages.pop(0)
+                    
+                ui_state.is_listening = False
+                ui_state.status = "Готов к работе"
+                ui_state.status_color = GREEN
+                
+                return text
             except (sr.WaitTimeoutError, sr.UnknownValueError):
+                ui_state.is_listening = False
+                ui_state.status = "Готов к работе"
+                ui_state.status_color = GREEN
                 return ""
             except Exception as e:
                 print(f"Ошибка распознавания: {e}")
+                ui_state.is_listening = False
+                ui_state.status = "Ошибка распознавания"
+                ui_state.status_color = RED
                 return ""
 
 def re(text):
@@ -217,11 +316,21 @@ def listen_for_wake_word():
     recognizer = VoiceRecognizer()
     re("Готов к работе, жду ключевое слово...")
     print("кеша, кеш, гоша, кэш, валера, чебурек")
+    
     while True:
         try:
+            # Ждем, пока Кеша закончит говорить
+            while audio_manager.is_speaking:
+                time.sleep(0.1)
+                
             text = recognizer.listen(timeout=Config.TIMEOUT)
             if any(word in text for word in Config.WAKE_WORDS):
+                ui_state.is_wake_word_detected = True
+                ui_state.status = "Активирован! Говорите команду..."
+                ui_state.status_color = GREEN
                 command_queue.put("wake_word_detected")
+                time.sleep(2)
+                ui_state.is_wake_word_detected = False
         except Exception as e:
             print(f"Ошибка в listen_for_wake_word: {e}")
             time.sleep(0.1)
@@ -239,6 +348,7 @@ def process_commands():
         if command == "wake_word_detected":
             command_text = recognize_command()
             if command_text:
+                ui_state.last_command = command_text
                 threading.Thread(
                     target=handle_command,
                     args=(command_text,),
@@ -417,6 +527,18 @@ def handle_command(text):
             start(r'game\FireKill.py')
             re('Запускаю')
             
+        elif 'телефон' in text:
+            keyboard.send('Win + 3')
+            time.sleep(1)
+            mouse.move(299, 180)
+            time.sleep(0.1)
+            mouse.click('left')
+            time.sleep(0.1)
+            mouse.move(350, 129)
+            time.sleep(0.1)
+            mouse.click('left')
+            re('Уже звоню ищите')    
+            
         elif 'fuck you' in text:
             start(r'game\FireKill.py')
             re('Запускаю')
@@ -549,7 +671,7 @@ def handle_command(text):
 
         else:
             ans = gig.ask_gigachat(text)
-            for i in ['*%»`#$"']:
+            for i in '*%»`#$"':
                 ans = ans.replace(i, '')
             re(ans)
 
@@ -557,53 +679,175 @@ def handle_command(text):
         re('Произошла ошибка при обработке команды')
         print(f"Ошибка: {e}")
 
+def draw_interface():
+    """Отрисовка интерфейса"""
+    screen.fill(LIGHT_BLUE)
+    
+    # Заголовок
+    title = font_large.render("Голосовой помощник Кеша", True, DARK_BLUE)
+    screen.blit(title, (WIDTH//2 - title.get_width()//2, 15))
+    
+    # Статусная панель
+    pygame.draw.rect(screen, WHITE, (10, 60, WIDTH-20, 40), border_radius=10)
+    status_text = font_medium.render(f"Статус: {ui_state.status}", True, ui_state.status_color)
+    screen.blit(status_text, (20, 70))
+    
+    # Индикатор активации (только когда сказали "Кеша")
+    if ui_state.is_wake_word_detected:
+        pygame.draw.circle(screen, GREEN, (WIDTH - 30, 80), 8)
+        active_text = font_small.render("Активен!", True, GREEN)
+        screen.blit(active_text, (WIDTH - 80, 72))
+    
+    # Индикатор слушания (только после активации)
+    if ui_state.is_listening and ui_state.is_wake_word_detected:
+        # Анимированный индикатор
+        size = 8 + int(ui_state.animation_counter % 3)
+        pygame.draw.circle(screen, RED, (WIDTH - 80, 80), size)
+        listen_text = font_small.render("Слушаю...", True, RED)
+        screen.blit(listen_text, (WIDTH - 130, 72))
+    
+    # Последняя команда
+    if ui_state.last_command:
+        pygame.draw.rect(screen, WHITE, (10, 110, WIDTH-20, 30), border_radius=10)
+        cmd_text = font_small.render(f"Последняя команда: {ui_state.last_command}", True, BLACK)
+        screen.blit(cmd_text, (20, 115))
+    
+    # Область сообщений
+    pygame.draw.rect(screen, WHITE, (10, 150, WIDTH-20, 150), border_radius=10)
+    msg_title = font_medium.render("Диалог:", True, DARK_BLUE)
+    screen.blit(msg_title, (20, 155))
+    
+    y_pos = 185
+    for sender, message in ui_state.messages[-4:]:
+        if sender == "Вы":
+            color = BLUE
+            prefix = "👤 "
+        else:
+            color = GREEN
+            prefix = "🤖 "
+        
+        msg_text = font_small.render(f"{prefix}{message}", True, color)
+        screen.blit(msg_text, (25, y_pos))
+        y_pos += 25
+    
+    # Область команд
+    pygame.draw.rect(screen, WHITE, (10, 310, WIDTH-20, 300), border_radius=10)
+    commands_title = font_medium.render("📋 Доступные команды:", True, DARK_BLUE)
+    screen.blit(commands_title, (20, 320))
+    
+    # Отображение команд постранично
+    start_idx = ui_state.commands_page * 8
+    end_idx = min(start_idx + 8, len(all_commands))
+    
+    y_pos = 355
+    for i in range(start_idx, end_idx):
+        command = all_commands[i]
+        if command in COMMAND_CATEGORIES:
+            # Это заголовок категории
+            cat_text = font_medium.render(command, True, DARK_BLUE)
+            screen.blit(cat_text, (25, y_pos))
+            y_pos += 25
+        else:
+            # Это команда
+            cmd_text = font_tiny.render(f"• {command}", True, BLACK)
+            screen.blit(cmd_text, (35, y_pos))
+            y_pos += 20
+    
+    # Навигация по страницам команд
+    if ui_state.total_command_pages > 1:
+        page_text = font_small.render(f"Страница {ui_state.commands_page + 1}/{ui_state.total_command_pages}", True, BLACK)
+        screen.blit(page_text, (WIDTH - 160, 320))
+        
+        # Кнопки навигации (исправлены координаты)
+        if ui_state.commands_page > 0:
+            pygame.draw.rect(screen, BLUE, (WIDTH - 200, 315, 30, 25), border_radius=5)
+            prev_text = font_small.render("←", True, WHITE)
+            screen.blit(prev_text, (WIDTH - 190, 315))
+        
+        if ui_state.commands_page < ui_state.total_command_pages - 1:
+            pygame.draw.rect(screen, BLUE, (WIDTH - 50, 315, 30, 25), border_radius=5)
+            next_text = font_small.render("→", True, WHITE)
+            screen.blit(next_text, (WIDTH - 40, 315))
+    
+    # Подсказки внизу
+    pygame.draw.rect(screen, WHITE, (10, 620, WIDTH-20, 70), border_radius=10)
+    tips = [
+        "🗣️ Скажите: 'Кеша' для активации, затем команду",
+        "⚡ Используйте кнопки ниже для управления"
+    ]
+    
+    y_pos = 630
+    for tip in tips:
+        tip_text = font_small.render(tip, True, BLACK)
+        screen.blit(tip_text, (20, y_pos))
+        y_pos += 20
+    
+    # Кнопка выхода
+    pygame.draw.rect(screen, RED, (WIDTH - 120, 635, 100, 30), border_radius=5)
+    exit_text = font_small.render("Выход", True, WHITE)
+    screen.blit(exit_text, (WIDTH - 95, 640))
+    
+    # Кнопка следующей страницы команд
+    pygame.draw.rect(screen, BLUE, (WIDTH - 240, 635, 100, 30), border_radius=5)
+    next_text = font_small.render("След. стр", True, WHITE)
+    screen.blit(next_text, (WIDTH - 235, 640))
+    
+    # Кнопка предыдущей страницы
+    pygame.draw.rect(screen, BLUE, (WIDTH - 360, 635, 100, 30), border_radius=5)
+    prev_text = font_small.render("Пред. стр", True, WHITE)
+    screen.blit(prev_text, (WIDTH - 355, 640))
+    
+    pygame.display.flip()
+    ui_state.animation_counter += 0.5
+
 def main():
     """Основная функция"""
-    print("\033[1;32m" + ' 🚀 Голосовой помощник активирован 🚀' + "\033[0m")
-    print("Для выхода скажите кеша пока/стоп/выход")
-    print("Доступные команды:")
-
-    print("- Привет/Молодец/Как дела")
-    print("- Мызыка/Музыка [название]")
-    print("- Поставь таймер на [минут]")
-    print("- Включи свет/Выключи свет (Для тех у кого есть умный дом алисой)")
-    print("- Переведи на английский [слово]")
-    print("- Дальше/Пауза")
-    print("- Найди в ютубе [запрос]")
-    print("- Найди [запрос]")
-    print("- Открой/Закрой [приложение] (иногда не работает)-")
-    print("- Погода")
-    print("- Переводчик")
-    print("- Время")
-    print("- Состояние батареи")
-    print("- Громче/Тише")
-    print("- Громкость [громкость от 1 до 100]")
-    print("- Выключи компьютер")
-
-    print("Доступные игры:")
-
-    print("Что бы начать игру скажите Кеше название игры")
-
-    print("- Игры - Открывает яндекс игры")
-    print("- FIreKill (Поиграйте очень интересно =) - ")
-    print("- Виселица - ")
-    print("- Крестики-Нолики - ")
-    print("- Угадай число - ")
-    print("- Квест - ")
-    print("- Викторина - ")
-    print("- Камень ножницы бумага - ")
-    print("- Угадай число - ")
-
+    print("🚀 Голосовой помощник Кеша с интерфейсом активирован!")
+    
     # Запуск потоков
     threading.Thread(target=listen_for_wake_word, daemon=True).start()
     threading.Thread(target=process_commands, daemon=True).start()
-
-    try:
-        while True:
-            time.sleep(0.1)
-    except KeyboardInterrupt:
-        re("Выключаюсь")
-        os._exit(0)
+    
+    # Главный цикл интерфейса
+    running = True
+    clock = pygame.time.Clock()
+    
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                
+                # Кнопка выхода
+                if WIDTH - 120 <= x <= WIDTH - 20 and 635 <= y <= 665:
+                    re("Выключаюсь")
+                    running = False
+                
+                # Кнопка следующей страницы команд (исправлены координаты)
+                elif WIDTH - 240 <= x <= WIDTH - 140 and 635 <= y <= 665:
+                    if ui_state.commands_page < ui_state.total_command_pages - 1:
+                        ui_state.commands_page += 1
+                
+                # Кнопка предыдущей страницы команд (исправлены координаты)
+                elif WIDTH - 360 <= x <= WIDTH - 260 and 635 <= y <= 665:
+                    if ui_state.commands_page > 0:
+                        ui_state.commands_page -= 1
+                
+                # Кнопки навигации в области команд (исправлены координаты)
+                elif WIDTH - 200 <= x <= WIDTH - 170 and 315 <= y <= 340:
+                    if ui_state.commands_page > 0:
+                        ui_state.commands_page -= 1
+                
+                elif WIDTH - 50 <= x <= WIDTH - 20 and 315 <= y <= 340:
+                    if ui_state.commands_page < ui_state.total_command_pages - 1:
+                        ui_state.commands_page += 1
+        
+        draw_interface()
+        clock.tick(30)
+    
+    pygame.quit()
+    os._exit(0)
 
 if __name__ == "__main__":
     main()
