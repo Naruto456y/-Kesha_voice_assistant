@@ -266,7 +266,7 @@ class VoiceRecognizer:
         self.recognizer.pause_threshold = Config.PAUSE_THRESHOLD
         self.recognizer.dynamic_energy_threshold = Config.DYNAMIC_ENERGY
 
-    def listen(self, timeout=1.5):
+    def listen(self, timeout=4):
         """Слушаем микрофон с таймаутом"""
         with sr.Microphone() as source:
             try:
