@@ -1,0 +1,13 @@
+pygame==2.5.2
+SpeechRecognition==3.10.0
+gTTS==2.5.1
+psutil==5.9.6
+requests==2.31.0
+beautifulsoup4==4.12.2
+keyboard==0.13.5
+mouse==0.7.1
+youtube-search==2.1.2
+AppOpener==3.1
+pycaw==20200807
+comtypes==1.1.14
+urllib3==1.26.18
