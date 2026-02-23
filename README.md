@@ -1,5 +1,5 @@
 # 🎤 Кеша - Голосовой помощник
-
+![Kesha_icoc](https://github.com/user-attachments/assets/a1e0c88f-690c-4eed-93f0-8d4ed24f5341)
 ![Python](https://img.shields.io/badge/Python-3.8+-blue?logo=python)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Stars](https://img.shields.io/github/stars/Naruto456y/-Kesha_voice_assistant?style=social)
@@ -8,6 +8,7 @@
 
 > 🇷🇺 Голосовой помощник Кеша - ваш персональный ассистент с русской душой
 > 🇬🇧 Kesha is a voice assistant with a Russian soul
+
 
 ## ✨ Возможности
 
