@@ -1,6 +1,43 @@
-![58e94e87a0711f0aaa97280f22d9388_3](https://github.com/user-attachments/assets/53b1f772-44fb-447f-8a71-4da74522a6f2)
-Кеша ваш голосовой помощник умеет много чего. Список того что он умеет в самой программе. Чтобы включить кешу введите в тирминале git clone https://github.com/Naruto456y/-Kesha_voice_assistant.
-Буду блогаларен если дадите open ai ключ чтобы внедрить в него chat gpt или поможете улучшить распознавание речи
+# 🎤 Кеша - Голосовой помощник
 
-Kesha, your voice assistant, can do a lot of things. A list of what he can do in the program itself. To enable the cache, enter git clone in the terminal https://github.com/Naruto456y/-Kesha_voice_assistant .
-I would be grateful if you could give open ai a key to embed chat gpt in it or help improve speech recognition.
+![Python](https://img.shields.io/badge/Python-3.8+-blue?logo=python)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Stars](https://img.shields.io/github/stars/Naruto456y/-Kesha_voice_assistant?style=social)
+
+**Кеша** — это голосовой помощник на русском языке, созданный с любовью и помощью DeepSeek. Он умеет общаться, отвечать на вопросы, играть в игры и многое другое!
+
+> 🇷🇺 Голосовой помощник Кеша - ваш персональный ассистент с русской душой
+> 🇬🇧 Kesha is a voice assistant with a Russian soul
+
+## ✨ Возможности
+
+### 🗣️ Голосовое взаимодействие
+- Распознавание русской речи (требует улучшений — ваша помощь приветствуется!)
+- Озвучивание ответов
+- Естественный диалог
+
+### 🎮 Игры и развлечения
+Встроенные игры в папке `games/`:
+- Викторины
+- Загадки
+- И многое другое!
+
+### 🤖 Интеграции (в разработке)
+- Планируется интеграция с OpenAI/ChatGPT
+- Возможность расширения функционала
+- API для дополнительных навыков
+
+## 🛠 Установка
+
+### Быстрый старт
+
+```bash
+# Клонируйте репозиторий
+git clone https://github.com/Naruto456y/-Kesha_voice_assistant.git
+cd -Kesha_voice_assistant
+
+# Установите зависимости
+pip install -r requirements.txt
+
+# Запустите помощника
+python main.py
